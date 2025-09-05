@@ -1,1 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Diário Digital - Izabel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📖</div>
+            <h1>Meu Diário Digital</h1>
+            <p class="subtitle">Um espaço para refletir sobre seus dias</p>
+        </div>
 
+        <!-- Tela de Login -->
+        <div id="login-screen" class="login-container">
+            <div id="alert-container"></div>
+            
+            <h2 style="text-align: center; color: #9400d3; margin-bottom: 30px;">Fazer Login</h2>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuário:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+        </div>
+
+        <!-- Área do Diário -->
+        <div id="diary-screen" class="diary-container hidden">
+            <div class="diary-header">
+                <h2 style="color: #9400d3;">Olá, Izabel! ✨</h2>
+                <button id="logout-btn" class="btn logout-btn">Sair</button>
+            </div>
+
+            <!-- Formulário de Nova Entrada -->
+            <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+                <h3 style="color: #9400d3; margin-bottom: 20px;">Como foi seu dia hoje?</h3>
+                
+                <div class="mood-selector">
+                    <div class="mood-btn mood-good" data-mood="good">
+                        😊 Bom dia!
+                    </div>
+                    <div class="mood-btn mood-okay" data-mood="okay">
+                        😐 Dia razoável
+                    </div>
+                    <div class="mood-btn mood-bad" data-mood="bad">
+                        😔 Dia difícil
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="diary-text">Conte sobre seu dia:</label>
+                    <textarea id="diary-text" placeholder="O que aconteceu hoje? Como você se sentiu?"></textarea>
+                </div>
+
+                <button id="save-entry" class="btn">💾 Salvar no Diário</button>
+            </div>
+
+            <!-- Estatísticas do Ano -->
+            <div class="stats">
+                <div class="stat-card stat-good">
+                    <div class="stat-number" id="good-days">0</div>
+                    <div>Dias Bons</div>
+                </div>
+                <div class="stat-card stat-okay">
+                    <div class="stat-number" id="okay-days">0</div>
+                    <div>Dias Razoáveis</div>
+                </div>
+                <div class="stat-card stat-bad">
+                    <div class="stat-number" id="bad-days">0</div>
+                    <div>Dias Difíceis</div>
+                </div>
+            </div>
+
+            <!-- Calendário -->
+            <div>
+                <h3 style="color: #9400d3; margin-bottom: 15px; text-align: center;">Calendário do Ano - <span id="current-year">2025</span></h3>
+                <div id="calendar" class="calendar"></div>
+            </div>
+
+            <!-- Lista de Entradas -->
+            <div class="entries-list">
+                <h3 style="color: #9400d3; margin-bottom: 20px;">Suas Últimas Reflexões</h3>
+                <div id="entries-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
