@@ -1,39 +1,649 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diário Pessoal</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CosmoLog — Diário Estelar</title>
+
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* ========= Cosmic theme basic styles ========= */
+    :root{
+      --bg1: #05021a;
+      --bg2: #0b2540;
+      --accent: #8ad0ff;
+      --accent2: #c77dff;
+      --glass: rgba(255,255,255,0.06);
+      --card: rgba(255,255,255,0.03);
+      --text: #e6f0ff;
+      --tag-bg: rgba(138,208,255,0.08);
+    }
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+    html,body{height:100%;margin:0;background: radial-gradient(ellipse at top right, rgba(71,10,129,0.35) 0%, transparent 30%), linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 100%); color:var(--text); -webkit-font-smoothing:antialiased;}
+    .stars{position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;background-image: radial-gradient(#fff 1px, transparent 1px), radial-gradient(#fff 1px, transparent 1px); background-size: 1px 1px, 2px 2px; opacity:0.12; mix-blend-mode:screen; animation: twinkle 8s linear infinite;}
+    @keyframes twinkle {0%{opacity:0.08}50%{opacity:0.15}100%{opacity:0.08}}
+    .container{max-width:1100px;margin:48px auto;padding:20px;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); padding:18px; border-radius:12px; box-shadow: 0 6px 24px rgba(2,6,23,0.5);}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    h1{font-size:22px;margin:0;display:flex;align-items:center;gap:10px}
+    .subtitle{color:rgba(230,240,255,0.7);font-size:13px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#011; font-weight:600}
+    .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06); color:var(--text)}
+    /* login layout */
+    .auth-wrap{display:flex;gap:28px;align-items:center;justify-content:center;height:70vh}
+    .auth-card{width:380px;padding:22px}
+    label{display:block;font-size:13px;margin:8px 0 6px;color:rgba(230,240,255,0.85)}
+    input[type="text"], input[type="password"], input[type="email"], textarea, input[type="date"]{
+      width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);outline:none
+    }
+    .mood-choice{display:flex;gap:8px;margin-top:10px}
+    .mood-btn{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;background:var(--card);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600}
+    .mood-btn.active{box-shadow:0 6px 18px rgba(139,90,255,0.15); transform:translateY(-3px); border:1px solid rgba(138,208,255,0.12)}
+    .row{display:flex;gap:12px;align-items:center}
+    .left{flex:1}
+    .right{width:360px}
+    .entry-list{max-height:320px;overflow:auto;margin-top:12px;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .entry{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
+    .muted{color:rgba(230,240,255,0.6);font-size:13px}
+    .small{font-size:13px}
+    footer{margin-top:16px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .top-stats{display:flex;gap:12px;align-items:center}
+    .stat{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;min-width:120px;text-align:center}
+    .stat strong{display:block;font-size:18px}
+    .tag{display:inline-block;padding:6px 8px;border-radius:999px;background:var(--tag-bg);margin:3px 6px 3px 0;font-size:12px;color:var(--text);cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
+    .tag.active{box-shadow:0 6px 18px rgba(0,0,0,0.35); transform:translateY(-2px); border:1px solid rgba(138,208,255,0.12)}
+    .entry-tags{margin-top:8px}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .flex-row{display:flex;gap:8px;align-items:center}
+    /* responsive */
+    @media(max-width:900px){.container{padding:12px}.row{flex-direction:column}.right{width:100%}}
+    /* small flourish: shooting star */
+    .shooting{position:absolute;right:5%;top:12%;width:120px;height:2px;background:linear-gradient(90deg,#fff0,#fff,#fff0);opacity:0.08;transform:rotate(-18deg);filter:blur(4px)}
+  </style>
 </head>
 <body>
-    <div class="login-container" id="login-container">
-        <div class="logo">
-            <img src="logo.png" alt="Logo do Diário">
-        </div>
-        <form id="login-form">
-            <label for="username">Nome de Usuário:</label>
-            <input type="text" id="username" required placeholder="Seu nome">
-            
-            <label for="password">Senha:</label>
-            <input type="password" id="password" required placeholder="Sua senha (aniversário)">
-            
-            <button type="submit">Entrar</button>
-        </form>
-        <p id="alert" class="alert-message"></p>
-    </div>
+  <div class="stars"></div>
+  <div class="shooting"></div>
 
-    <div class="calendar-container" id="calendar-container" style="display:none;">
-        <h2>Bem-vindo, Zabel Aquino</h2>
-        <div id="calendar"></div>
-        <div class="status-buttons">
-            <button class="status-btn" id="good-day">Bom</button>
-            <button class="status-btn" id="neutral-day">Razoável</button>
-            <button class="status-btn" id="bad-day">Ruim</button>
-        </div>
-        <p id="summary"></p>
-    </div>
+  <div class="container" id="app">
+    <!-- Header -->
+    <header>
+      <div>
+        <h1>🌌 CosmoLog <span class="subtitle">— seu diário estelar</span></h1>
+        <div class="muted small">Registre seus dias. Veja a sua constelação emocional.</div>
+      </div>
+      <div id="header-actions"></div>
+    </header>
 
-    <script src="script.js"></script>
+    <!-- Main area -->
+    <main id="main-area" class="card">
+      <!-- AUTH area (login/register) -->
+      <div id="auth" class="auth-wrap" style="display:none;">
+        <div class="card auth-card">
+          <h2 style="margin:0 0 6px">Entrar</h2>
+          <div class="muted small">Entre com seu email e senha (autenticação local).</div>
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="seu@email.com">
+          <label for="login-pass">Senha</label>
+          <input id="login-pass" type="password" placeholder="********">
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="btn-login" class="btn">Entrar</button>
+            <button id="show-register" class="ghost btn">Registrar</button>
+          </div>
+          <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+          <h3 style="margin:0 0 6px">Registrar novo usuário</h3>
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" placeholder="novo@email.com">
+          <label for="reg-pass">Senha</label>
+          <input id="reg-pass" type="password" placeholder="senha segura">
+          <div style="margin-top:10px">
+            <button id="btn-register" class="btn">Criar conta</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard (diary) -->
+      <div id="diary" style="display:none;">
+        <div class="row">
+          <div class="left">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div style="flex:1">
+                <label for="entry-date">Data</label>
+                <input id="entry-date" type="date">
+              </div>
+              <div style="width:160px">
+                <label>Humor</label>
+                <div class="mood-choice">
+                  <button class="mood-btn" data-mood="good" id="mood-good">⭐ Bom</button>
+                  <button class="mood-btn" data-mood="neutral" id="mood-neutral">🌗 Razoável</button>
+                  <button class="mood-btn" data-mood="bad" id="mood-bad">🕳️ Ruim</button>
+                </div>
+              </div>
+            </div>
+
+            <label for="entry-text">Log estelar (o seu diário)</label>
+            <textarea id="entry-text" rows="5" placeholder="Como foi seu dia..."></textarea>
+
+            <label for="entry-tags">Tags (separe com vírgula) <span class="muted small">(ex.: trabalho, família)</span></label>
+            <input id="entry-tags" type="text" placeholder="trabalho, estudo">
+
+            <div class="controls">
+              <button id="save-entry" class="btn">Salvar log</button>
+              <button id="show-chart" class="ghost btn">Ver gráfico</button>
+              <button id="export-json" class="ghost btn">Exportar JSON</button>
+              <button id="export-pdf" class="ghost btn">Exportar PDF</button>
+              <div style="margin-left:auto;color:rgba(230,240,255,0.7)" id="welcome-user"></div>
+            </div>
+
+            <div style="margin-top:14px" class="muted small">Dica: use tags para filtrar e analisar temas específicos (ex.: trabalho, saúde, família).</div>
+
+            <section style="margin-top:18px">
+              <h3 style="margin:0 0 8px">Entradas recentes</h3>
+
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                <div class="muted small">Filtrar por tag:</div>
+                <div id="tag-cloud"></div>
+                <button id="clear-tag-filter" class="ghost btn">Limpar filtro</button>
+              </div>
+
+              <div class="entry-list" id="entry-list"></div>
+            </section>
+          </div>
+
+          <aside class="right">
+            <div class="card" style="padding:12px;">
+              <h4 style="margin:0 0 8px">Resumo do ano <span class="muted small" id="year-label"></span></h4>
+              <div class="top-stats" id="top-stats">
+                <div class="stat">
+                  <div class="muted small">Dias bons</div>
+                  <strong id="count-good">0</strong>
+                  <div class="muted small" id="pct-good">0%</div>
+                </div>
+                <div class="stat">
+                  <div class="muted small">Dias razoáveis</div>
+                  <strong id="count-neutral">0</strong>
+                  <div class="muted small" id="pct-neutral">0%</div>
+                </div>
+                <div class="stat">
+                  <div class="muted small">Dias ruins</div>
+                  <strong id="count-bad">0</strong>
+                  <div class="muted small" id="pct-bad">0%</div>
+                </div>
+              </div>
+
+              <div style="margin-top:12px">
+                <canvas id="pie-chart" width="300" height="200"></canvas>
+              </div>
+
+              <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+                <label for="select-year" class="muted small">Ano</label>
+                <select id="select-year"></select>
+                <button id="delete-year" class="ghost btn" style="margin-left:auto">Apagar ano</button>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:12px;padding:12px">
+              <h4 style="margin:0 0 8px">Sugestões Cósmicas</h4>
+              <ul class="muted small">
+                <li>Use tags para agrupar entradas por tema e ver tendências.</li>
+                <li>Ative lembretes diários (pode ser adicionado futuramente).</li>
+                <li>Conecte com backend (Firebase) para sincronizar entre dispositivos.</li>
+              </ul>
+            </div>
+
+          </aside>
+        </div>
+
+        <footer>
+          <div class="muted small">Feito com ♥ para registrar suas jornadas entre as estrelas.</div>
+          <div style="display:flex;gap:8px">
+            <button id="logout" class="ghost btn">Sair</button>
+          </div>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal for full charts (line timeline) -->
+  <div id="chart-modal" style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:40;">
+    <div style="width:92%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Evolução Estelar</h3>
+        <div style="display:flex;gap:8px">
+          <button id="download-chart" class="btn">Baixar PNG</button>
+          <button id="close-modal" class="ghost btn">Fechar</button>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <canvas id="line-chart" width="900" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========= Helpers & storage =========
+    const LS_USERS_KEY = "cosmolog_users_v2";
+    const LS_ENTRIES_KEY = "cosmolog_entries_v2";
+    const LS_CURR_KEY = "cosmolog_current_user_v2";
+
+    function getUsers(){ return JSON.parse(localStorage.getItem(LS_USERS_KEY) || "{}"); }
+    function saveUsers(u){ localStorage.setItem(LS_USERS_KEY, JSON.stringify(u)); }
+    function getEntries(){ return JSON.parse(localStorage.getItem(LS_ENTRIES_KEY) || "[]"); }
+    function saveEntries(entries){ localStorage.setItem(LS_ENTRIES_KEY, JSON.stringify(entries)); }
+    function setCurrentUser(email){ localStorage.setItem(LS_CURR_KEY, email); }
+    function getCurrentUser(){ return localStorage.getItem(LS_CURR_KEY); }
+    function logoutUser(){ localStorage.removeItem(LS_CURR_KEY); location.reload(); }
+
+    // Map moods to numeric for chart
+    const MOOD_VAL = { bad: 0, neutral: 1, good: 2 };
+    const MOOD_LABEL = { bad: "Ruim", neutral: "Razoável", good: "Bom" };
+
+    // ========= UI references =========
+    const authWrap = document.getElementById("auth");
+    const diaryWrap = document.getElementById("diary");
+    const headerActions = document.getElementById("header-actions");
+    const entryDate = document.getElementById("entry-date");
+    const entryText = document.getElementById("entry-text");
+    const entryTagsInput = document.getElementById("entry-tags");
+    const moodButtons = document.querySelectorAll(".mood-btn");
+    const saveBtn = document.getElementById("save-entry");
+    const entryListEl = document.getElementById("entry-list");
+    const welcomeUser = document.getElementById("welcome-user");
+    const selectYear = document.getElementById("select-year");
+    const yearLabel = document.getElementById("year-label");
+    const countGood = document.getElementById("count-good");
+    const countNeutral = document.getElementById("count-neutral");
+    const countBad = document.getElementById("count-bad");
+    const pctGood = document.getElementById("pct-good");
+    const pctNeutral = document.getElementById("pct-neutral");
+    const pctBad = document.getElementById("pct-bad");
+    const pieCanvas = document.getElementById("pie-chart");
+    const chartModal = document.getElementById("chart-modal");
+    const lineCanvas = document.getElementById("line-chart");
+    const tagCloudEl = document.getElementById("tag-cloud");
+    const clearTagFilterBtn = document.getElementById("clear-tag-filter");
+
+    // auth inputs
+    const loginEmail = document.getElementById("login-email");
+    const loginPass = document.getElementById("login-pass");
+    const btnLogin = document.getElementById("btn-login");
+    const regEmail = document.getElementById("reg-email");
+    const regPass = document.getElementById("reg-pass");
+    const btnRegister = document.getElementById("btn-register");
+    const showRegister = document.getElementById("show-register");
+    const logoutBtn = document.getElementById("logout");
+    const showChartBtn = document.getElementById("show-chart");
+    const exportBtn = document.getElementById("export-json");
+    const exportPdfBtn = document.getElementById("export-pdf");
+    const deleteYearBtn = document.getElementById("delete-year");
+    const downloadChartBtn = document.getElementById("download-chart");
+    const closeModalBtn = document.getElementById("close-modal");
+
+    // state
+    let currentMood = "good";
+    let pieChart = null;
+    let lineChart = null;
+    let activeTagFilter = null;
+
+    // init
+    function init(){
+      // default date = today
+      entryDate.value = new Date().toISOString().slice(0,10);
+
+      // mood defaults
+      setMood("good");
+      moodButtons.forEach(b => b.addEventListener("click", ()=> setMood(b.dataset.mood)));
+
+      // show auth or diary depending on logged user
+      const curr = getCurrentUser();
+      if(!curr){
+        authWrap.style.display = "flex";
+        diaryWrap.style.display = "none";
+        headerActions.innerHTML = '';
+      } else {
+        authWrap.style.display = "none";
+        diaryWrap.style.display = "block";
+        headerActions.innerHTML = `<div class="muted small">Conectado como <strong>${curr}</strong></div>`;
+        welcomeUser.innerText = `Olá, ${curr}`;
+        populateDiaryForUser(curr);
+      }
+
+      // auth events
+      btnRegister.addEventListener("click", registerUser);
+      btnLogin.addEventListener("click", loginUser);
+      showRegister.addEventListener("click", ()=>{ regEmail.focus(); });
+      logoutBtn.addEventListener("click", ()=>{ logoutUser(); });
+
+      // diary events
+      saveBtn.addEventListener("click", saveEntry);
+      showChartBtn.addEventListener("click", openChartModal);
+      exportBtn.addEventListener("click", exportJSON);
+      exportPdfBtn.addEventListener("click", exportPDF);
+      selectYear.addEventListener("change", () => refreshSummary());
+      deleteYearBtn.addEventListener("click", deleteYear);
+      downloadChartBtn.addEventListener("click", ()=> {
+        if(lineChart){
+          const a = document.createElement('a');
+          a.href = lineCanvas.toDataURL('image/png');
+          a.download = 'evolucao-estelar.png';
+          a.click();
+        }
+      });
+      closeModalBtn.addEventListener("click", ()=> chartModal.style.display='none');
+
+      clearTagFilterBtn.addEventListener("click", ()=> {
+        activeTagFilter = null; renderTagCloud(); populateDiaryForUser(getCurrentUser());
+      });
+
+      // fill years selector with past 10 years by default and current year
+      const nowY = new Date().getFullYear();
+      for(let y = nowY; y >= nowY-10; y--){
+        const opt = document.createElement("option");
+        opt.value = y; opt.textContent = y;
+        selectYear.appendChild(opt);
+      }
+      selectYear.value = nowY;
+
+      // login shortcuts: Enter to submit
+      [loginEmail, loginPass].forEach(el => el.addEventListener("keydown", (e)=>{ if(e.key==='Enter') btnLogin.click(); }));
+      [regEmail, regPass].forEach(el => el.addEventListener("keydown", (e)=>{ if(e.key==='Enter') btnRegister.click(); }));
+    }
+
+    // ========= Auth functions =========
+    function registerUser(){
+      const email = regEmail.value.trim().toLowerCase();
+      const pass = regPass.value;
+      if(!email || !pass){ alert("Preencha email e senha para registrar."); return; }
+      const users = getUsers();
+      if(users[email]){ alert("Usuário já existe. Faça login."); return; }
+      users[email] = { password: pass, createdAt: new Date().toISOString() };
+      saveUsers(users);
+      alert("Conta criada! Você já pode entrar.");
+      regEmail.value=''; regPass.value='';
+    }
+
+    function loginUser(){
+      const email = loginEmail.value.trim().toLowerCase();
+      const pass = loginPass.value;
+      if(!email || !pass){ alert("Preencha email e senha."); return; }
+      const users = getUsers();
+      if(!users[email] || users[email].password !== pass){ alert("Credenciais inválidas."); return; }
+      setCurrentUser(email);
+      location.reload();
+    }
+
+    // ========= Diary functions =========
+    function setMood(m){
+      currentMood = m;
+      moodButtons.forEach(b => b.classList.toggle("active", b.dataset.mood === m));
+    }
+
+    function saveEntry(){
+      const curr = getCurrentUser();
+      if(!curr){ alert("Faça login primeiro."); return; }
+      const date = entryDate.value;
+      const text = entryText.value.trim();
+      const mood = currentMood;
+      const rawTags = entryTagsInput.value.trim();
+      const tags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>t.toLowerCase()) : [];
+      if(!date){ alert("Escolha uma data."); return; }
+      // create entry object
+      const entries = getEntries();
+      // ensure uniqueness per user+date: if exists, overwrite
+      const idx = entries.findIndex(e => e.user === curr && e.date === date);
+      const entryObj = { id: `${curr}__${date}`, user: curr, date: date, mood: mood, text: text, tags: tags, createdAt: new Date().toISOString() };
+      if(idx >= 0){ entries[idx] = entryObj; } else { entries.push(entryObj); }
+      saveEntries(entries);
+      alert("Log salvo ✨");
+      entryText.value = ''; entryTagsInput.value = '';
+      populateDiaryForUser(curr);
+    }
+
+    function populateDiaryForUser(user){
+      // populate list and summary
+      const all = getEntries().filter(e=>e.user===user).sort((a,b)=> new Date(b.date) - new Date(a.date));
+      // if tag filter active, apply it
+      const entries = activeTagFilter ? all.filter(e => (e.tags || []).includes(activeTagFilter)) : all;
+      renderEntries(entries);
+      renderTagCloud(); // show tags
+      refreshSummary();
+    }
+
+    function renderEntries(entries){
+      entryListEl.innerHTML = '';
+      if(entries.length === 0){ entryListEl.innerHTML = '<div class="muted small">Nenhuma entrada — comece a registrar suas jornadas estelares.</div>'; return; }
+      entries.slice(0,200).forEach(e=>{
+        const div = document.createElement("div");
+        div.className = 'entry';
+        const tagsHtml = (e.tags || []).map(t=>`<span class="tag" data-tag="${t}">${escapeHtml(t)}</span>`).join(' ');
+        div.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong>${formatDate(e.date)}</strong> <span class="muted small">— ${MOOD_LABEL[e.mood]}</span></div>
+            <div style="display:flex;gap:6px">
+              <button class="ghost btn small" data-action="edit" data-id="${e.id}">Editar</button>
+              <button class="ghost btn small" data-action="del" data-id="${e.id}">Apagar</button>
+            </div>
+          </div>
+          <div style="margin-top:8px" class="muted small">${escapeHtml(e.text || '(sem texto)')}</div>
+          <div class="entry-tags">${tagsHtml}</div>
+        `;
+        entryListEl.appendChild(div);
+      });
+
+      // attach handlers
+      entryListEl.querySelectorAll('button[data-action="edit"]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          const id = b.dataset.id;
+          const entry = getEntries().find(x=>x.id===id);
+          if(entry){
+            entryDate.value = entry.date;
+            entryText.value = entry.text;
+            entryTagsInput.value = (entry.tags || []).join(', ');
+            setMood(entry.mood);
+            window.scrollTo({top:0,behavior:'smooth'});
+          }
+        });
+      });
+      entryListEl.querySelectorAll('button[data-action="del"]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          if(!confirm('Apagar esta entrada?')) return;
+          const id = b.dataset.id;
+          let entries = getEntries();
+          entries = entries.filter(x=>x.id !== id);
+          saveEntries(entries);
+          populateDiaryForUser(getCurrentUser());
+        });
+      });
+
+      // tag click handlers (inside entries)
+      entryListEl.querySelectorAll('.entry .tag').forEach(t=>{
+        t.addEventListener('click', ()=>{
+          const tag = t.dataset.tag;
+          activeTagFilter = tag;
+          renderTagCloud();
+          populateDiaryForUser(getCurrentUser());
+          window.scrollTo({top:document.getElementById('entry-list').offsetTop, behavior:'smooth'});
+        });
+      });
+    }
+
+    function renderTagCloud(){
+      const user = getCurrentUser(); if(!user) return;
+      const entries = getEntries().filter(e=>e.user===user);
+      const tagCounts = {};
+      entries.forEach(e => (e.tags || []).forEach(t => tagCounts[t] = (tagCounts[t]||0)+1));
+      tagCloudEl.innerHTML = '';
+      const keys = Object.keys(tagCounts).sort((a,b)=> tagCounts[b]-tagCounts[a]);
+      if(keys.length===0){ tagCloudEl.innerHTML = '<span class="muted small">— sem tags —</span>'; return; }
+      keys.forEach(k=>{
+        const span = document.createElement('span');
+        span.className = 'tag' + (activeTagFilter === k ? ' active' : '');
+        span.dataset.tag = k;
+        span.innerText = `${k} (${tagCounts[k]})`;
+        span.addEventListener('click', ()=>{
+          activeTagFilter = (activeTagFilter === k) ? null : k;
+          populateDiaryForUser(user);
+        });
+        tagCloudEl.appendChild(span);
+      });
+    }
+
+    function refreshSummary(){
+      const user = getCurrentUser();
+      if(!user) return;
+      const entriesAll = getEntries().filter(e=>e.user===user);
+      // apply tag filter if active for summary/chart
+      const entriesFiltered = activeTagFilter ? entriesAll.filter(e => (e.tags||[]).includes(activeTagFilter)) : entriesAll;
+      // determine year selection
+      const year = parseInt(selectYear.value || new Date().getFullYear());
+      yearLabel.textContent = year;
+      const forYear = entriesFiltered.filter(e => new Date(e.date).getFullYear() === year);
+      const counts = { good:0, neutral:0, bad:0 };
+      forYear.forEach(e => { counts[e.mood] = (counts[e.mood]||0) + 1; });
+      const total = forYear.length || 0;
+      countGood.textContent = counts.good;
+      countNeutral.textContent = counts.neutral;
+      countBad.textContent = counts.bad;
+      pctGood.textContent = total ? `${Math.round((counts.good/total)*100)}%` : '0%';
+      pctNeutral.textContent = total ? `${Math.round((counts.neutral/total)*100)}%` : '0%';
+      pctBad.textContent = total ? `${Math.round((counts.bad/total)*100)}%` : '0%';
+
+      // refresh pie chart
+      const data = [counts.good, counts.neutral, counts.bad];
+      if(pieChart) { pieChart.data.datasets[0].data = data; pieChart.update(); }
+      else {
+        pieChart = new Chart(pieCanvas.getContext('2d'), {
+          type:'pie',
+          data:{
+            labels:['Bom','Razoável','Ruim'],
+            datasets:[{ data:data }]
+          },
+          options:{
+            plugins:{legend:{position:'bottom'}},
+            responsive:true,
+            maintainAspectRatio:false
+          }
+        });
+      }
+    }
+
+    function openChartModal(){
+      const user = getCurrentUser(); if(!user) return alert("Faça login.");
+      // prepare data: entries sorted by date asc, with tag filter
+      const all = getEntries().filter(e=>e.user===user).sort((a,b)=> new Date(a.date) - new Date(b.date));
+      const entries = activeTagFilter ? all.filter(e => (e.tags||[]).includes(activeTagFilter)) : all;
+      if(entries.length === 0){ alert('Nenhuma entrada para mostrar.'); return; }
+      const labels = entries.map(e=>formatDate(e.date));
+      const data = entries.map(e=>MOOD_VAL[e.mood] ?? 1);
+      if(lineChart) lineChart.destroy();
+      lineChart = new Chart(lineCanvas.getContext('2d'), {
+        type:'line',
+        data:{
+          labels: labels,
+          datasets:[{
+            label: 'Humor (0 ruim — 2 bom)',
+            data: data,
+            tension:0.25,
+            fill:false,
+            borderWidth:2,
+            pointRadius:4,
+            pointHoverRadius:6
+          }]
+        },
+        options:{
+          scales:{
+            y: { min:0, max:2, ticks:{ stepSize:1, callback: function(val){ return val===2?'Bom':val===1?'Razoável':'Ruim' } } }
+          },
+          plugins:{legend:{display:false}}
+        }
+      });
+
+      chartModal.style.display = 'flex';
+    }
+
+    function exportJSON(){
+      const user = getCurrentUser(); if(!user) return alert("Faça login.");
+      const entries = getEntries().filter(e=>e.user===user).sort((a,b)=>new Date(b.date)-new Date(a.date));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(entries, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `cosmolog_${user}_entries.json`;
+      a.click();
+    }
+
+    async function exportPDF(){
+      const user = getCurrentUser(); if(!user) return alert("Faça login.");
+      // create a report for selected year and tag filter
+      const year = parseInt(selectYear.value || new Date().getFullYear());
+      const all = getEntries().filter(e=>e.user===user).sort((a,b)=> new Date(b.date) - new Date(a.date));
+      const entries = (activeTagFilter ? all.filter(e => (e.tags||[]).includes(activeTagFilter)) : all).filter(e => new Date(e.date).getFullYear() === year);
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      let y = margin;
+      doc.setFontSize(18);
+      doc.text(`CosmoLog — Relatório Estelar ${year}`, margin, y);
+      y += 22;
+      doc.setFontSize(12);
+      doc.text(`Usuário: ${user}`, margin, y);
+      y += 16;
+      doc.text(`Filtro de tag: ${activeTagFilter || '— nenhum —'}`, margin, y);
+      y += 18;
+
+      if(entries.length === 0){
+        doc.text("Nenhuma entrada no período selecionado.", margin, y);
+      } else {
+        // summary counts
+        const counts = { good:0, neutral:0, bad:0 };
+        entries.forEach(e => counts[e.mood] = (counts[e.mood]||0) + 1);
+        doc.text(`Resumo: ${counts.good} dias bons — ${counts.neutral} razoáveis — ${counts.bad} ruins`, margin, y);
+        y += 18;
+
+        doc.setFontSize(11);
+        entries.forEach(e=>{
+          if(y > 760){ doc.addPage(); y = margin; }
+          doc.setFont(undefined, 'bold');
+          doc.text(`${formatDate(e.date)} — ${MOOD_LABEL[e.mood]}`, margin, y);
+          y += 14;
+          doc.setFont(undefined, 'normal');
+          const tags = (e.tags || []).join(', ');
+          doc.text(`Tags: ${tags || '—'}`, margin + 10, y);
+          y += 12;
+          const lines = doc.splitTextToSize(e.text || '(sem texto)', 500);
+          doc.text(lines, margin + 10, y);
+          y += lines.length * 12 + 12;
+        });
+      }
+
+      const filename = `cosmolog_${user}_report_${year}${activeTagFilter ? `_${activeTagFilter}` : ''}.pdf`;
+      doc.save(filename);
+    }
+
+    function deleteYear(){
+      if(!confirm('Apagar todas as entradas do ano selecionado? A ação é irreversível.')) return;
+      const user = getCurrentUser(); if(!user) return;
+      const year = parseInt(selectYear.value);
+      let entries = getEntries();
+      entries = entries.filter(e => !(e.user === user && new Date(e.date).getFullYear() === year));
+      saveEntries(entries);
+      populateDiaryForUser(user);
+    }
+
+    // ========= Utilities =========
+    function formatDate(d){
+      const dt = new Date(d);
+      if(isNaN(dt)) return d;
+      return dt.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+    function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // ========= init on load =========
+    window.addEventListener('load', init);
+  </script>
 </body>
 </html>
